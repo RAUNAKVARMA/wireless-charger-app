@@ -26,25 +26,42 @@ st.markdown(
 )
 
 # --- Physics-based prediction function (from your paper) ---
-def predict_efficiency(gap_mm, offset_mm, freq_khz, tx_temp, rx_temp, q_factor, current, voltage, ferrite, shield, oscillation_mode=None):
+def predict_efficiency(
+    gap_mm, offset_mm, freq_khz, tx_temp, rx_temp, q_factor, current, voltage,
+    ferrite, shield, oscillation_mode=None
+):
     gap_cm = gap_mm / 10.0
     offset_cm = offset_mm / 10.0
     L = 60e-6  # prototype value
-    ferrite_code = 'A' if ferrite in ['A1','A2'] else 'B'
+    # Map descriptive labels to A/B config internally
+    ferrite_map = {
+        "A1 (Ferrite, 200x0.12mm Litz)": "A",
+        "A2 (Ferrite, 200x0.12mm Litz)": "A",
+        "B1 (No ferrite, 100x0.20mm Litz)": "B",
+        "B2 (No ferrite, 100x0.20mm Litz)": "B"
+    }
+    ferrite_code = ferrite_map.get(ferrite, "A")
     R_dict = {'A': 0.055, 'B': 0.030}
     R = R_dict.get(ferrite_code, 0.055)
     freq = freq_khz * 1e3
     omega = 2 * np.pi * freq
     q_adj = q_factor / 150
     eta = 1 - (R/(L*omega*q_adj))
-    if gap_cm > 15: eta *= (0.96 - 0.007*(gap_cm - 15))
-    if offset_cm == 5: eta *= 0.984
-    elif offset_cm == 10: eta *= 0.95
-    elif offset_cm == 15: eta *= 0.905
-    if oscillation_mode == 'mechanical': eta *= 1.0115
-    elif oscillation_mode == 'electrical': eta *= 1.025
+    if gap_cm > 15:
+        eta *= (0.96 - 0.007*(gap_cm - 15))
+    if offset_cm == 5:
+        eta *= 0.984
+    elif offset_cm == 10:
+        eta *= 0.95
+    elif offset_cm == 15:
+        eta *= 0.905
+    if oscillation_mode == 'mechanical':
+        eta *= 1.0115
+    elif oscillation_mode == 'electrical':
+        eta *= 1.025
     eta = max(min(eta, 0.98), 0.80)
     return eta*100.0
+
 
 def predict_power(voltage, current, efficiency):
     return voltage * current * (efficiency / 100)

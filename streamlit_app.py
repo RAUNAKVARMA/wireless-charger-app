@@ -4,6 +4,10 @@ import pandas as pd
 import plotly.graph_objects as go
 from datetime import datetime
 
+if "did_redirect" not in st.session_state:
+    st.session_state.did_redirect = True
+    # st.switch_page("pages/YourPage.py")
+
 st.set_page_config(
     page_title="WPT Efficiency Predictor",
     page_icon="⚡",

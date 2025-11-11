@@ -272,9 +272,8 @@ elif page == "ℹ️ About":
     st.header("📘 About This Predictor")
     col_about1, col_about2 = st.columns(2)
     with col_about1:
-      with col_about1:
-    st.subheader("🎯 What is this?")
-    st.markdown(r"""
+        st.subheader("🎯 What is this?")
+        st.markdown(r"""
 **Physics-based EV charger predictor**  
 Formula reflects:
 - Real gap/offset/ferrite/oscillation/coil effects (see your paper Table 1, Table 5–6)

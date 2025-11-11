@@ -22,8 +22,9 @@ st.markdown("""
 # --- Title ---
 st.title("⚡ Wireless Power Transfer Efficiency Predictor")
 st.markdown(
-    "*Physics-based predictions using real EV hardware equations ([per your publication](https://ppl-ai-file-upload.s3.amazonaws.com/web/direct-files/attachments/112166856/8681bb8f-137d-4fbf-bfbe-dcb768913a96/Wireless_Charging_for_EVs-16.pdf))*"
+    "*Physics-based predictions using real EV hardware equations ([see full publication](https://drive.google.com/file/d/16QYTlp2hGZ_Bwb6hl85dQLVggLr8U5Js/view?usp=drivesdk))*"
 )
+
 
 # --- Physics-based prediction function (from your paper) ---
 def predict_efficiency(

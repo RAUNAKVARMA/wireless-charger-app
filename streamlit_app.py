@@ -28,7 +28,7 @@ st.markdown(
 # --- Physics-based prediction function (from your paper) ---
 def predict_efficiency(
     gap_mm, offset_mm, freq_khz, tx_temp, rx_temp, q_factor, current, voltage,
-    ferrite, shield, oscillation_mode=None
+    ferrite, shield, oscillation_mode=None, coil_geometry=None
 ):
     gap_cm = gap_mm / 10.0
     offset_cm = offset_mm / 10.0
@@ -59,9 +59,27 @@ def predict_efficiency(
         eta *= 1.0115
     elif oscillation_mode == 'electrical':
         eta *= 1.025
-    eta = max(min(eta, 0.98), 0.80)
+    geometry_efficiency = {
+        "Circle (85–95%)": 0.95,
+        "Elliptical (70–75%)": 0.73,
+        "Circular Rectangular (90%)": 0.90,
+        "Multi-Threaded (65–70%)": 0.68,
+        "Square (85–90%)": 0.89,
+        "Rectangular (75–90%)": 0.85,
+        "Triangular (-)": 0.83,
+        "Cross-Shaped (>90%)": 0.92,
+        "Hexagonal (>90%)": 0.92,
+        "Octagonal (>85%)": 0.88,
+        "Pentagonal (Medium, %)": 0.86,
+        "X-Pad (90–95%)": 0.93,
+        "Segmented (90–95%)": 0.93,
+        "Flux Pipe (>80%)": 0.81,
+        "Homogeneous (-)": 0.80
+    }
+    shape_mult = geometry_efficiency.get(coil_geometry, 0.85)
+    eta *= shape_mult
+    eta = max(min(eta, 0.98), 0.65)  # expanded lower limit for poor geometries
     return eta*100.0
-
 
 def predict_power(voltage, current, efficiency):
     return voltage * current * (efficiency / 100)
@@ -91,11 +109,31 @@ if page == "🔮 Single Prediction":
         input_voltage_v = st.slider("Input Voltage (V)", 200, 400, 350, 5)
     with col4:
         st.subheader("🛠️ Hardware")
-        ferrite_config = st.selectbox("Ferrite Config", ["A1", "A2", "B1", "B2"])
+        ferrite_config = st.selectbox(
+            "Ferrite Config",
+            [
+                "A1 (Ferrite, 200x0.12mm Litz)",
+                "A2 (Ferrite, 200x0.12mm Litz)",
+                "B1 (No ferrite, 100x0.20mm Litz)",
+                "B2 (No ferrite, 100x0.20mm Litz)"
+            ]
+        )
         shield_type = st.selectbox("Shield Type", ["none", "aluminum", "mu-metal", "ferrite"])
         oscillation_mode = st.selectbox("Oscillation/Modulation Mode", ["none", "mechanical", "electrical"])
+        coil_geometry = st.selectbox(
+            "Coil Geometry",
+            [
+                "Circle (85–95%)", "Elliptical (70–75%)", "Circular Rectangular (90%)",
+                "Multi-Threaded (65–70%)", "Square (85–90%)", "Rectangular (75–90%)", "Triangular (-)",
+                "Cross-Shaped (>90%)", "Hexagonal (>90%)", "Octagonal (>85%)", "Pentagonal (Medium, %)",
+                "X-Pad (90–95%)", "Segmented (90–95%)", "Flux Pipe (>80%)", "Homogeneous (-)"
+            ]
+        )
     if st.button("🎯 Predict", use_container_width=True, type="primary"):
-        efficiency = predict_efficiency(gap_mm, offset_mm, frequency_khz, tx_temp_c, rx_temp_c, q_factor, input_current_a, input_voltage_v, ferrite_config, shield_type, oscillation_mode)
+        efficiency = predict_efficiency(
+            gap_mm, offset_mm, frequency_khz, tx_temp_c, rx_temp_c, q_factor, input_current_a, input_voltage_v,
+            ferrite_config, shield_type, oscillation_mode, coil_geometry
+        )
         power = predict_power(input_voltage_v, input_current_a, efficiency)
         ci_lower = max(80, efficiency - 1.5)
         ci_upper = min(98, efficiency + 1.5)
@@ -110,7 +148,6 @@ if page == "🔮 Single Prediction":
         with col_res3:
             loss_pct = 100 - efficiency
             st.metric("Power Loss", f"{loss_pct:.1f}%", f"{(input_voltage_v*input_current_a)*(loss_pct/100):.1f}W")
-        # --- Gauge visualization ---
         fig = go.Figure()
         fig.add_trace(go.Indicator(mode="gauge+number", value=efficiency, title={'text': "Efficiency (%)"}, domain={'x': [0, 0.45], 'y': [0, 1]}, gauge={'axis': {'range': [80, 98]}, 'bar': {'color': "#667eea"}, 'threshold': {'line': {'color': "red", 'width': 4}, 'thickness': 0.75, 'value': 97}}))
         fig.add_trace(go.Indicator(mode="gauge+number", value=power, title={'text': "Power (W)"}, domain={'x': [0.55, 1], 'y': [0, 1]}, gauge={'axis': {'range': [0, input_voltage_v * input_current_a]}, 'bar': {'color': "#764ba2"}}))
@@ -118,8 +155,8 @@ if page == "🔮 Single Prediction":
         st.plotly_chart(fig, use_container_width=True)
         st.subheader("📋 Configuration Summary")
         summary_data = {
-            'Parameter': ['Gap', 'Offset', 'Frequency', 'Tx Temp', 'Rx Temp', 'Q-Factor', 'Input Current', 'Input Voltage', 'Ferrite', 'Shield', 'Oscillation'],
-            'Value': [f'{gap_mm}mm', f'{offset_mm}mm', f'{frequency_khz}kHz', f'{tx_temp_c}°C', f'{rx_temp_c}°C', f'{q_factor}', f'{input_current_a}A', f'{input_voltage_v}V', ferrite_config, shield_type, oscillation_mode]
+            'Parameter': ['Gap', 'Offset', 'Frequency', 'Tx Temp', 'Rx Temp', 'Q-Factor', 'Input Current', 'Input Voltage', 'Ferrite', 'Shield', 'Oscillation', 'Coil Geometry'],
+            'Value': [f'{gap_mm}mm', f'{offset_mm}mm', f'{frequency_khz}kHz', f'{tx_temp_c}°C', f'{rx_temp_c}°C', f'{q_factor}', f'{input_current_a}A', f'{input_voltage_v}V', ferrite_config, shield_type, oscillation_mode, coil_geometry]
         }
         st.dataframe(pd.DataFrame(summary_data), use_container_width=True)
 
@@ -131,15 +168,24 @@ elif page == "📊 Frequency Optimization":
         gap_mm = st.slider("Gap Distance (mm)", 100.0, 250.0, 150.0, 5.0, key="freq_gap")
         offset_mm = st.slider("Lateral Offset (mm)", 0.0, 150.0, 0.0, 5.0, key="freq_offset")
         q_factor = st.slider("Q-Factor", 130, 220, 170, 5)
-        ferrite_config = st.selectbox("Ferrite Config", ["A1", "A2", "B1", "B2"], key="freq_ferrite")
+        ferrite_config = st.selectbox("Ferrite Config", ["A1 (Ferrite, 200x0.12mm Litz)", "A2 (Ferrite, 200x0.12mm Litz)", "B1 (No ferrite, 100x0.20mm Litz)", "B2 (No ferrite, 100x0.20mm Litz)"], key="freq_ferrite")
         shield_type = st.selectbox("Shield Type", ["none", "aluminum", "mu-metal", "ferrite"], key="freq_shield")
         oscillation_mode = st.selectbox("Oscillation", ["none", "mechanical", "electrical"], key="freq_osc")
+        coil_geometry = st.selectbox(
+            "Coil Geometry",
+            [
+                "Circle (85–95%)", "Elliptical (70–75%)", "Circular Rectangular (90%)",
+                "Multi-Threaded (65–70%)", "Square (85–90%)", "Rectangular (75–90%)", "Triangular (-)",
+                "Cross-Shaped (>90%)", "Hexagonal (>90%)", "Octagonal (>85%)", "Pentagonal (Medium, %)",
+                "X-Pad (90–95%)", "Segmented (90–95%)", "Flux Pipe (>80%)", "Homogeneous (-)"
+            ], key="freq_geom"
+        )
     with col2:
         input_current_a = st.slider("Input Current (A)", 2.0, 10.0, 5.0, 0.1, key="freq_i")
         input_voltage_v = st.slider("Input Voltage (V)", 200, 400, 350, 5, key="freq_v")
     if st.button("🔍 Scan Frequencies", use_container_width=True, type="primary"):
         frequencies = np.arange(80, 101, 1)
-        efficiencies = [predict_efficiency(gap_mm, offset_mm, freq, 45, 43, q_factor, input_current_a, input_voltage_v, ferrite_config, shield_type, oscillation_mode) for freq in frequencies]
+        efficiencies = [predict_efficiency(gap_mm, offset_mm, freq, 45, 43, q_factor, input_current_a, input_voltage_v, ferrite_config, shield_type, oscillation_mode, coil_geometry) for freq in frequencies]
         powers = [predict_power(input_voltage_v, input_current_a, eff) for eff in efficiencies]
         idx_opt = np.argmax(efficiencies)
         optimal_freq = int(frequencies[idx_opt])
@@ -171,15 +217,18 @@ elif page == "📈 Batch Analysis":
         'q_factor': [170, 150, 210, 180, 200],
         'input_current_a': [5.0, 4.0, 6.0, 8.0, 2.5],
         'input_voltage_v': [350, 250, 250, 300, 400],
-        'ferrite_config': ['A1', 'B1', 'A2', 'B2', 'A1'],
+        'ferrite_config': ["A1 (Ferrite, 200x0.12mm Litz)", "B1 (No ferrite, 100x0.20mm Litz)", "A2 (Ferrite, 200x0.12mm Litz)", "B2 (No ferrite, 100x0.20mm Litz)", "A1 (Ferrite, 200x0.12mm Litz)"],
         'shield_type': ['mu-metal', 'ferrite', 'none', 'mu-metal', 'aluminum'],
-        'oscillation_mode': ['none', 'mechanical', 'electrical', 'mechanical', 'none']
+        'oscillation_mode': ['none', 'mechanical', 'electrical', 'mechanical', 'none'],
+        'coil_geometry': [
+            "Circle (85–95%)", "Elliptical (70–75%)", "Pancake (flat)", "Rectangular (75–90%)", "X-Pad (90–95%)"
+        ]
     })
     edited_df = st.data_editor(sample_configs, use_container_width=True, num_rows="dynamic")
     if st.button("🚀 Analyze Batch", use_container_width=True, type="primary"):
         results = []
         for idx, row in edited_df.iterrows():
-            eff = predict_efficiency(row['gap_mm'], row['offset_mm'], row['frequency_khz'], row['tx_temp_c'], row['rx_temp_c'], row['q_factor'], row['input_current_a'], row['input_voltage_v'], row['ferrite_config'], row['shield_type'], row['oscillation_mode'])
+            eff = predict_efficiency(row['gap_mm'], row['offset_mm'], row['frequency_khz'], row['tx_temp_c'], row['rx_temp_c'], row['q_factor'], row['input_current_a'], row['input_voltage_v'], row['ferrite_config'], row['shield_type'], row['oscillation_mode'], row['coil_geometry'])
             pwr = predict_power(row['input_voltage_v'], row['input_current_a'], eff)
             results.append({
                 'Config ID': idx + 1,
@@ -189,7 +238,8 @@ elif page == "📈 Batch Analysis":
                 'Efficiency (%)': round(eff, 1),
                 'Power (W)': round(pwr, 1),
                 'Loss (%)': round(100-eff, 1),
-                'Oscillation': row.get('oscillation_mode', 'none')
+                'Oscillation': row.get('oscillation_mode', 'none'),
+                'Coil Geometry': row['coil_geometry']
             })
         results_df = pd.DataFrame(results)
         st.markdown("---")
@@ -221,13 +271,13 @@ elif page == "ℹ️ About":
         st.markdown(r"""
 **Physics-based EV charger predictor**  
 Formula reflects:
-- Real gap/offset/ferrite/oscillation effects (see your paper Table 5–6)
-- Model: \(\eta = 1 - \frac{R}{L\omega Q_{rel}}\)
+- Real gap/offset/ferrite/oscillation/coil effects (see your paper Table 1, Table 5–6)
+- Model: \(\eta = 1 - \frac{R}{L\omega Q_{rel}}\) * Geometry Multiplier
 """)
     with col_about2:
         st.subheader("⚙️ Model Details")
         st.markdown(r"""
-- Core parameters match: Q-factor, coil config, gap, offset
+- Core parameters match: Q-factor, coil config, gap, offset, geometry
 - Oscillation/freq modulation selectable
 - All UI/table features preserved
 """)
@@ -237,10 +287,9 @@ Formula reflects:
 1. Go to a tab
 2. Set your hardware/test config
 3. Click Predict/Analyze
-4. Results use published equations
+4. Results use published equations + geometry
 """)
 
 st.markdown("---")
-st.markdown("<p style='text-align: center; color: gray;'>⚡ WPT Efficiency Predictor | Research prototype equations, all features and UI preserved</p>", unsafe_allow_html=True)
-
+st.markdown("<p style='text-align: center; color: gray;'>⚡ WPT Efficiency Predictor | Research prototype equations + geometry, all features and UI preserved</p>", unsafe_allow_html=True)
 

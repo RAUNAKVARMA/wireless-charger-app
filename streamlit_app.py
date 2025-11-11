@@ -272,13 +272,19 @@ elif page == "ℹ️ About":
     st.header("📘 About This Predictor")
     col_about1, col_about2 = st.columns(2)
     with col_about1:
-        st.subheader("🎯 What is this?")
-        st.markdown(r"""
+      with col_about1:
+    st.subheader("🎯 What is this?")
+    st.markdown(r"""
 **Physics-based EV charger predictor**  
 Formula reflects:
 - Real gap/offset/ferrite/oscillation/coil effects (see your paper Table 1, Table 5–6)
-- Model: \(\eta = 1 - \frac{R}{L\omega Q_{rel}}\) * Geometry Multiplier
+- Model:
+    
+    $$
+    \eta = 1 - \frac{R}{L\omega Q_{\mathrm{rel}}} \times \text{Geometry Multiplier}
+    $$
 """)
+
     with col_about2:
         st.subheader("⚙️ Model Details")
         st.markdown(r"""

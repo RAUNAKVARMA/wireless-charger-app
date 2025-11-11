@@ -25,7 +25,7 @@ st.markdown(
     "*Physics-based predictions using real EV hardware equations ([per your publication](https://ppl-ai-file-upload.s3.amazonaws.com/web/direct-files/attachments/112166856/8681bb8f-137d-4fbf-bfbe-dcb768913a96/Wireless_Charging_for_EVs-16.pdf))*"
 )
 
-# --- NEW: Physics-based prediction function (from your paper) ---
+# --- Physics-based prediction function (from your paper) ---
 def predict_efficiency(gap_mm, offset_mm, freq_khz, tx_temp, rx_temp, q_factor, current, voltage, ferrite, shield, oscillation_mode=None):
     gap_cm = gap_mm / 10.0
     offset_cm = offset_mm / 10.0
@@ -201,26 +201,29 @@ elif page == "ℹ️ About":
     col_about1, col_about2 = st.columns(2)
     with col_about1:
         st.subheader("🎯 What is this?")
-       st.markdown(r"""
+        st.markdown(r"""
 **Physics-based EV charger predictor**  
 Formula reflects:
 - Real gap/offset/ferrite/oscillation effects (see your paper Table 5–6)
 - Model: \(\eta = 1 - \frac{R}{L\omega Q_{rel}}\)
 """)
-
     with col_about2:
         st.subheader("⚙️ Model Details")
-        st.markdown(""
-        - Core parameters match: Q-factor, coil config, gap, offset\n
-        - Oscillation/freq modulation selectable\n
-        - All UI/table features preserved
-        """)
+        st.markdown(r"""
+- Core parameters match: Q-factor, coil config, gap, offset
+- Oscillation/freq modulation selectable
+- All UI/table features preserved
+""")
     st.markdown("---")
     st.subheader("🚀 Quick Start Guide")
-    st.markdown("""
-    1. Go to a tab\n2. Set your hardware/test config\n3. Click Predict/Analyze\n4. Results use published equations
-    """)
+    st.markdown(r"""
+1. Go to a tab
+2. Set your hardware/test config
+3. Click Predict/Analyze
+4. Results use published equations
+""")
 
 st.markdown("---")
 st.markdown("<p style='text-align: center; color: gray;'>⚡ WPT Efficiency Predictor | Research prototype equations, all features and UI preserved</p>", unsafe_allow_html=True)
+
 
